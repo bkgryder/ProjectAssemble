@@ -7,18 +7,36 @@ using ProjectAssemble.Systems;
 
 namespace ProjectAssemble.UI
 {
+    /// <summary>
+    /// UI component for selecting machine types.
+    /// </summary>
     public class MachinePaletteUI
     {
         readonly Rectangle _rect;
+
+        /// <summary>
+        /// Gets the bounds of the palette.
+        /// </summary>
         public Rectangle Rect => _rect;
 
+        /// <summary>
+        /// Occurs when a machine type is picked.
+        /// </summary>
         public event Action<MachineType> MachinePicked;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MachinePaletteUI"/> class.
+        /// </summary>
+        /// <param name="rect">Display rectangle.</param>
         public MachinePaletteUI(Rectangle rect)
         {
             _rect = rect;
         }
 
+        /// <summary>
+        /// Updates the palette state based on input.
+        /// </summary>
+        /// <param name="input">The input manager.</param>
         public void Update(InputManager input)
         {
             var ms = input.CurrentMouse;
@@ -29,6 +47,9 @@ namespace ProjectAssemble.UI
             }
         }
 
+        /// <summary>
+        /// Draws the palette.
+        /// </summary>
         public void Draw(SpriteBatch sb, Texture2D tiles, Texture2D px, SpriteFont font)
         {
             FillRect(sb, px, _rect, new Color(30, 32, 38));

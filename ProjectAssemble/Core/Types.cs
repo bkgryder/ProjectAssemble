@@ -2,12 +2,31 @@ using Microsoft.Xna.Framework;
 
 namespace ProjectAssemble.Core
 {
+    /// <summary>
+    /// Available machine types.
+    /// </summary>
     public enum MachineType { Arm }
+
+    /// <summary>
+    /// Supported shape types.
+    /// </summary>
     public enum ShapeType { L, Rect2x2 }
+
+    /// <summary>
+    /// Cardinal directions used for machine orientation.
+    /// </summary>
     public enum Direction { Up, Right, Down, Left }
 
+    /// <summary>
+    /// Helper methods for working with <see cref="Direction"/> values.
+    /// </summary>
     public static class Dir
     {
+        /// <summary>
+        /// Converts a direction to its unit <see cref="Point"/> delta.
+        /// </summary>
+        /// <param name="d">The direction to convert.</param>
+        /// <returns>The delta representing the direction.</returns>
         public static Point ToDelta(Direction d) => d switch
         {
             Direction.Up => new Point(0, -1),
@@ -17,6 +36,11 @@ namespace ProjectAssemble.Core
             _ => Point.Zero
         };
 
+        /// <summary>
+        /// Gets the rotation angle in radians for the given direction.
+        /// </summary>
+        /// <param name="d">The direction.</param>
+        /// <returns>The angle in radians.</returns>
         public static float Angle(Direction d) => d switch
         {
             Direction.Right => 0f,

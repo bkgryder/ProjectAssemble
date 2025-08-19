@@ -7,18 +7,35 @@ using ProjectAssemble.Systems;
 
 namespace ProjectAssemble.UI
 {
+    /// <summary>
+    /// UI component for selecting shape types.
+    /// </summary>
     public class ShapePaletteUI
     {
         readonly Rectangle _rect;
+
+        /// <summary>
+        /// Gets the bounds of the palette.
+        /// </summary>
         public Rectangle Rect => _rect;
 
+        /// <summary>
+        /// Occurs when a shape type is picked.
+        /// </summary>
         public event Action<ShapeType> ShapePicked;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ShapePaletteUI"/> class.
+        /// </summary>
+        /// <param name="rect">Display rectangle.</param>
         public ShapePaletteUI(Rectangle rect)
         {
             _rect = rect;
         }
 
+        /// <summary>
+        /// Updates the palette state based on input.
+        /// </summary>
         public void Update(InputManager input)
         {
             var ms = input.CurrentMouse;
@@ -32,6 +49,9 @@ namespace ProjectAssemble.UI
             }
         }
 
+        /// <summary>
+        /// Draws the palette.
+        /// </summary>
         public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font)
         {
             FillRect(sb, px, _rect, new Color(30, 32, 38));
