@@ -1,0 +1,3 @@
+Source File,Dest File,Processor Type,Content Type,Source File Size,Dest File Size,Build Seconds
+"C:/Users/212698858/Documents/GitHub/ProjectAssemble/ProjectAssemble/Content/DefaultFont.spritefont","C:/Users/212698858/Documents/GitHub/ProjectAssemble/ProjectAssemble/Content/bin/DesktopGL/DefaultFont.xnb","FontDescriptionProcessor","SpriteFontContent",2068,21538,0.1484194
+"C:/Users/212698858/Documents/GitHub/ProjectAssemble/ProjectAssemble/Content/Factory_16.png","C:/Users/212698858/Documents/GitHub/ProjectAssemble/ProjectAssemble/Content/bin/DesktopGL/Factory_16.xnb","TextureProcessor","Texture2DContent",564,102485,0.0177735

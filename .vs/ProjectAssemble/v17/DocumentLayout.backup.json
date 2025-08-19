@@ -1,0 +1,49 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\212698858\\Documents\\GitHub\\ProjectAssemble\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{E1DDD521-CD01-43AB-A760-50F3A2D1B070}|ProjectAssemble\\ProjectAssemble.csproj|c:\\users\\212698858\\documents\\github\\projectassemble\\projectassemble\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{E1DDD521-CD01-43AB-A760-50F3A2D1B070}|ProjectAssemble\\ProjectAssemble.csproj|solutionrelative:projectassemble\\game1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Game1.cs",
+              "DocumentMoniker": "C:\\Users\\212698858\\Documents\\GitHub\\ProjectAssemble\\ProjectAssemble\\Game1.cs",
+              "RelativeDocumentMoniker": "ProjectAssemble\\Game1.cs",
+              "ToolTip": "C:\\Users\\212698858\\Documents\\GitHub\\ProjectAssemble\\ProjectAssemble\\Game1.cs*",
+              "RelativeToolTip": "ProjectAssemble\\Game1.cs*",
+              "ViewState": "AgIAAOIAAAAAAAAAAAAQwLcDAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-08-18T22:53:15.833Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
