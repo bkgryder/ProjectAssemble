@@ -36,6 +36,16 @@ namespace ProjectAssemble.UI
         public int StepCount => Timeline.Steps;
 
         /// <summary>
+        /// Gets the timeline step currently under the mouse, or -1 if none.
+        /// </summary>
+        public int HoveredStep => _hoveredStep;
+
+        /// <summary>
+        /// Gets the lane row currently under the mouse, or -1 if none.
+        /// </summary>
+        public int HoveredRow => _hoveredRow;
+
+        /// <summary>
         /// Gets a value indicating whether the timeline is being dragged.
         /// </summary>
         public bool IsDragging => _dragging;
@@ -179,7 +189,7 @@ namespace ProjectAssemble.UI
                         if (act != ArmAction.None && font != null)
                         {
                             string txt = act == ArmAction.Move ? "M" : "?";
-                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.Black);
+                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.White);
                         }
                     }
                 }

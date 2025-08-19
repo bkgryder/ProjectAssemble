@@ -47,6 +47,7 @@ namespace ProjectAssemble.Core
         TimelineUI _timelineUI;
         ArmParameterUI _armParamUI;
         ArmAction _pendingArmAction = ArmAction.None;
+        bool _draggingAction = false;
         int _currentStep = 0;
 
         // Drag state - machines
@@ -265,6 +266,26 @@ namespace ProjectAssemble.Core
                 _draggingShape = false; _draggingShapeExisting = false; _dragShapeType = null; _pickedSource = null;
             }
 
+            // ===== Drop action onto timeline =====
+            if (_draggingAction && JustReleased(ms.LeftButton, _input.PreviousMouse.LeftButton))
+            {
+                if (_pendingArmAction != ArmAction.None && _selectedMachine is ArmMachine selected)
+                {
+                    int row = _timelineUI.HoveredRow;
+                    int step = _timelineUI.HoveredStep;
+                    var arms = GetArmsSorted();
+                    int idx = arms.IndexOf(selected);
+                    if (idx == row && step >= 0 && step < selected.Program.Length)
+                    {
+                        selected.Program[step] = selected.Program[step] == _pendingArmAction
+                            ? ArmAction.None
+                            : _pendingArmAction;
+                    }
+                }
+                _draggingAction = false;
+                _pendingArmAction = ArmAction.None;
+            }
+
             // ===== Selection (Enter to select hovered; Esc clears) =====
             if (!_dragging && !_draggingShape)
             {
@@ -349,6 +370,7 @@ namespace ProjectAssemble.Core
         void OnActionPicked(ArmAction action)
         {
             _pendingArmAction = action;
+            _draggingAction = true;
         }
 
         void OnTimelineSlotClicked(int row, int step)
