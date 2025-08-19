@@ -8,6 +8,9 @@ using ProjectAssemble.Systems;
 
 namespace ProjectAssemble.UI
 {
+    /// <summary>
+    /// Timeline UI for scrubbing through steps and assigning actions to machines.
+    /// </summary>
     public class TimelineUI
     {
         const int TIMESTEPS = 21;
@@ -17,13 +20,34 @@ namespace ProjectAssemble.UI
         bool _dragging = false;
         int _currentStep = 0;
 
+        /// <summary>
+        /// Gets the bounds of the timeline.
+        /// </summary>
         public Rectangle Rect => _rect;
+
+        /// <summary>
+        /// Gets the currently selected step.
+        /// </summary>
         public int CurrentStep => _currentStep;
+
+        /// <summary>
+        /// Gets the total number of steps available.
+        /// </summary>
         public int StepCount => TIMESTEPS;
+
+        /// <summary>
+        /// Gets a value indicating whether the timeline is being dragged.
+        /// </summary>
         public bool IsDragging => _dragging;
 
+        /// <summary>
+        /// Occurs when the current step changes.
+        /// </summary>
         public event Action<int> StepChanged;
 
+        /// <summary>
+        /// Updates the timeline based on input and machine configuration.
+        /// </summary>
         public void Update(InputManager input, Rectangle gridRect, List<ArmMachine> arms)
         {
             var ms = input.CurrentMouse;
@@ -89,6 +113,9 @@ namespace ProjectAssemble.UI
             return Math.Clamp(row, 0, lanes - 1);
         }
 
+        /// <summary>
+        /// Draws the timeline.
+        /// </summary>
         public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font, List<ArmMachine> arms)
         {
             FillRect(sb, px, _rect, new Color(30, 32, 38));

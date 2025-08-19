@@ -4,21 +4,49 @@ using ProjectAssemble.Core;
 
 namespace ProjectAssemble.Entities.Machines
 {
+    /// <summary>
+    /// A machine that can extend and rotate to manipulate shapes.
+    /// </summary>
     public class ArmMachine : IMachine
     {
+        /// <summary>
+        /// Maximum extension length of the arm.
+        /// </summary>
         public const int MaxExtension = 3; // debug clamp
+
+        /// <inheritdoc/>
         public MachineType Type => MachineType.Arm;
+
+        /// <inheritdoc/>
         public Point BasePos { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the facing direction of the arm.
+        /// </summary>
         public Direction Facing { get; set; }
+
+        /// <summary>
+        /// Gets or sets the extension length beyond the base along the facing direction.
+        /// </summary>
         public int Extension { get; set; } = 0; // tiles beyond base along Facing
+
+        /// <summary>
+        /// Gets or sets the label assigned to this arm.
+        /// </summary>
         public char Label { get; set; } = ' '; // 'A','B',...
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ArmMachine"/> class.
+        /// </summary>
+        /// <param name="basePos">Base position of the arm.</param>
+        /// <param name="facing">Initial facing direction.</param>
         public ArmMachine(Point basePos, Direction facing)
         {
             BasePos = basePos;
             Facing = facing;
         }
 
+        /// <inheritdoc/>
         public void Draw(SpriteBatch sb, Texture2D tiles, Texture2D px, Point origin, int tilesPerRow)
         {
             var center = new Vector2(origin.X + BasePos.X * 16 + 8, origin.Y + BasePos.Y * 16 + 8);

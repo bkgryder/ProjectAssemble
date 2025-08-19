@@ -30,7 +30,12 @@
     <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.2.1105" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="**/*.cs" Exclude="bin/**;obj/**" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Core/**/*.cs" />
+    <Compile Include="World/**/*.cs" />
+    <Compile Include="Entities/**/*.cs" />
+    <Compile Include="Systems/**/*.cs" />
+    <Compile Include="UI/**/*.cs" />
   </ItemGroup>
   <Target Name="RestoreDotnetTools" BeforeTargets="Restore">
     <Message Text="Restoring dotnet tools" Importance="High" />

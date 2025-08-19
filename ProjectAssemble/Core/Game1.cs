@@ -3,14 +3,13 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ProjectAssemble.Core;
 using ProjectAssemble.World;
 using ProjectAssemble.Entities.Machines;
 using ProjectAssemble.Entities.Shapes;
 using ProjectAssemble.Systems;
 using ProjectAssemble.UI;
 
-namespace ProjectAssemble
+namespace ProjectAssemble.Core
 {
     // Step 1g: Arm labels (A,B,C,...) + multi-row timeline lanes by Arm
     // - Arms auto-assign next available label when placed; labels persist when moved
@@ -18,6 +17,9 @@ namespace ProjectAssemble
     // - Prep for future draggable action modules per-lane
     // Existing features retained: hover/select outlines, hotkeys, drag/edit, shapes with auto-replenish
     // Tilesheet: Content/Factory_16 (16x16)
+    /// <summary>
+    /// Main game entry point.
+    /// </summary>
     public class Game1 : Game
     {
         GraphicsDeviceManager _graphics;
@@ -68,11 +70,11 @@ namespace ProjectAssemble
         WorldManager _worldManager;
 
         // Placed machines (managed by WorldManager)
-        List<IMachine> _machines => _worldManager.Machines;
+        List<IMachine> Machines => _worldManager.Machines;
 
         // Shapes (managed by WorldManager)
-        List<ShapeSource> _shapeSources => _worldManager.ShapeSources;
-        List<ShapeInstance> _shapeInstances => _worldManager.ShapeInstances;
+        List<ShapeSource> ShapeSources => _worldManager.ShapeSources;
+        List<ShapeInstance> ShapeInstances => _worldManager.ShapeInstances;
 
         // Hover/Select
         Point _hoverCell;
@@ -83,6 +85,9 @@ namespace ProjectAssemble
         IMachine _selectedMachine = null;
         ShapeSource _selectedSource = null;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Game1"/> class.
+        /// </summary>
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -157,7 +162,7 @@ namespace ProjectAssemble
                     case ArmMachine arm:
                         _ghostFacing = arm.Facing; _ghostExt = arm.Extension; break;
                 }
-                _machines.Remove(_pickedMachine); // remove while dragging so the cell is free
+                Machines.Remove(_pickedMachine); // remove while dragging so the cell is free
                 _selectedMachine = null; _selectedSource = null;
             }
 
@@ -168,7 +173,7 @@ namespace ProjectAssemble
                 _pickedSource = _hoverSource;
                 _dragShapeType = _pickedSource.Type;
                 _ghostShapeFacing = _pickedSource.Facing;
-                _shapeSources.Remove(_pickedSource);
+                ShapeSources.Remove(_pickedSource);
                 _selectedMachine = null; _selectedSource = null;
             }
 
@@ -204,7 +209,7 @@ namespace ProjectAssemble
                             case MachineType.Arm:
                                 var label = NextArmLabel();
                                 var arm = new ArmMachine(cell, _ghostFacing) { Extension = _ghostExt, Label = label };
-                                _machines.Add(arm); placed = true; break;
+                                Machines.Add(arm); placed = true; break;
                         }
                     }
                 }
@@ -215,7 +220,7 @@ namespace ProjectAssemble
                     {
                         case ArmMachine arm:
                             var back = new ArmMachine(_pickedOriginCell, _ghostFacing) { Extension = _ghostExt, Label = arm.Label };
-                            _machines.Add(back);
+                            Machines.Add(back);
                             break;
                     }
                 }
@@ -234,14 +239,14 @@ namespace ProjectAssemble
                     if (_world.InBounds(cell) && !_world.IsOccupied(cell))
                     {
                         var src = new ShapeSource(cell, _dragShapeType.Value, _ghostShapeFacing);
-                        _shapeSources.Add(src); placed = true;
+                        ShapeSources.Add(src); placed = true;
                     }
                 }
 
                 if (!placed && _draggingShapeExisting && _pickedSource != null)
                 {
                     // put back
-                    _shapeSources.Add(new ShapeSource(_pickedSource.BasePos, _pickedSource.Type, _ghostShapeFacing));
+                    ShapeSources.Add(new ShapeSource(_pickedSource.BasePos, _pickedSource.Type, _ghostShapeFacing));
                 }
 
                 _draggingShape = false; _draggingShapeExisting = false; _dragShapeType = null; _pickedSource = null;
@@ -261,9 +266,9 @@ namespace ProjectAssemble
                     if (_hoverInGrid)
                     {
                         var inst = InstanceAtCell(_hoverCell);
-                        if (inst != null) _shapeInstances.Remove(inst);
-                        else if (_hoverSource != null) _shapeSources.Remove(_hoverSource);
-                        else if (_hoverMachine != null) _machines.Remove(_hoverMachine);
+                        if (inst != null) ShapeInstances.Remove(inst);
+                        else if (_hoverSource != null) ShapeSources.Remove(_hoverSource);
+                        else if (_hoverMachine != null) Machines.Remove(_hoverMachine);
                     }
                 }
                 if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Escape))
@@ -290,9 +295,9 @@ namespace ProjectAssemble
             if (JustPressed(ms.RightButton, _input.PreviousMouse.RightButton) && _hoverInGrid)
             {
                 var inst = InstanceAtCell(_hoverCell);
-                if (inst != null) _shapeInstances.Remove(inst);
-                else if (_hoverSource != null) _shapeSources.Remove(_hoverSource);
-                else if (_hoverMachine != null) _machines.Remove(_hoverMachine);
+                if (inst != null) ShapeInstances.Remove(inst);
+                else if (_hoverSource != null) ShapeSources.Remove(_hoverSource);
+                else if (_hoverMachine != null) Machines.Remove(_hoverMachine);
             }
 
             // Auto-replenish shapes from sources
@@ -345,7 +350,7 @@ namespace ProjectAssemble
             DrawGridLines();
 
             // Machines
-            foreach (var m in _machines)
+            foreach (var m in Machines)
                 m.Draw(_sb, _tiles, _px, _gridOrigin, TilesPerRow);
 
             // Arm labels on grid
@@ -430,7 +435,7 @@ namespace ProjectAssemble
         char NextArmLabel()
         {
             var used = new HashSet<char>();
-            foreach (var m in _machines)
+            foreach (var m in Machines)
                 if (m is ArmMachine a && a.Label != ' ') used.Add(a.Label);
             for (char c = 'A'; c <= 'Z'; c++) if (!used.Contains(c)) return c;
             return '?';
@@ -439,7 +444,7 @@ namespace ProjectAssemble
         List<ArmMachine> GetArmsSorted()
         {
             var list = new List<ArmMachine>();
-            foreach (var m in _machines) if (m is ArmMachine a) list.Add(a);
+            foreach (var m in Machines) if (m is ArmMachine a) list.Add(a);
             list.Sort((a, b) => a.Label.CompareTo(b.Label));
             return list;
         }
@@ -520,17 +525,17 @@ namespace ProjectAssemble
 
         IMachine MachineAtCell(Point cell)
         {
-            foreach (var m in _machines) if (m.BasePos == cell) return m; return null;
+            foreach (var m in Machines) if (m.BasePos == cell) return m; return null;
         }
 
         ShapeSource SourceAtCell(Point cell)
         {
-            foreach (var s in _shapeSources) if (s.BasePos == cell) return s; return null;
+            foreach (var s in ShapeSources) if (s.BasePos == cell) return s; return null;
         }
 
         ShapeInstance InstanceAtCell(Point cell)
         {
-            foreach (var si in _shapeInstances)
+            foreach (var si in ShapeInstances)
                 foreach (var c in si.Cells)
                     if (c == cell) return si;
             return null;
@@ -584,7 +589,7 @@ namespace ProjectAssemble
 
         void DrawShapeInstances()
         {
-            foreach (var inst in _shapeInstances)
+            foreach (var inst in ShapeInstances)
             {
                 foreach (var c in inst.Cells)
                 {
@@ -595,7 +600,7 @@ namespace ProjectAssemble
             }
 
             // Draw sources (pins)
-            foreach (var src in _shapeSources)
+            foreach (var src in ShapeSources)
             {
                 var r = CellRect(src.BasePos);
                 FillRect(r, new Color(120, 170, 255, 25));

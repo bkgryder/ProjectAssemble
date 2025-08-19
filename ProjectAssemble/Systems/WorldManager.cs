@@ -13,18 +13,46 @@ namespace ProjectAssemble.Systems
     /// </summary>
     public class WorldManager
     {
+        /// <summary>
+        /// Gets the grid world managed by this instance.
+        /// </summary>
         public GridWorld World { get; }
+
+        /// <summary>
+        /// Gets the input manager associated with the world.
+        /// </summary>
         public InputManager Input { get; }
+
+        /// <summary>
+        /// Gets the collection of machines in the world.
+        /// </summary>
         public List<IMachine> Machines { get; } = new();
+
+        /// <summary>
+        /// Gets the collection of shape sources in the world.
+        /// </summary>
         public List<ShapeSource> ShapeSources { get; } = new();
+
+        /// <summary>
+        /// Gets the collection of active shape instances.
+        /// </summary>
         public List<ShapeInstance> ShapeInstances { get; } = new();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="WorldManager"/> class.
+        /// </summary>
+        /// <param name="width">World width in cells.</param>
+        /// <param name="height">World height in cells.</param>
+        /// <param name="input">Optional input manager.</param>
         public WorldManager(int width, int height, InputManager input = null)
         {
             Input = input;
             World = new GridWorld(width, height);
         }
 
+        /// <summary>
+        /// Rebuilds the occupancy map based on machines and shapes.
+        /// </summary>
         public void RebuildOccupancy()
         {
             World.BeginOccupancy();
@@ -35,6 +63,9 @@ namespace ProjectAssemble.Systems
             World.EndOccupancy();
         }
 
+        /// <summary>
+        /// Ensures each shape source has a corresponding shape instance if space is available.
+        /// </summary>
         public void ReplenishShapes()
         {
             for (int i = 0; i < ShapeSources.Count; i++)
@@ -50,6 +81,11 @@ namespace ProjectAssemble.Systems
             }
         }
 
+        /// <summary>
+        /// Determines whether all specified cells are within bounds and unoccupied.
+        /// </summary>
+        /// <param name="cells">Cells to check.</param>
+        /// <returns><c>true</c> if all cells are free; otherwise, <c>false</c>.</returns>
         public bool AreCellsFree(List<Point> cells)
         {
             foreach (var p in cells)
@@ -57,6 +93,13 @@ namespace ProjectAssemble.Systems
             return true;
         }
 
+        /// <summary>
+        /// Gets the absolute footprint cells for a shape placed at the specified position and orientation.
+        /// </summary>
+        /// <param name="type">Shape type.</param>
+        /// <param name="basePos">Base position.</param>
+        /// <param name="facing">Facing direction.</param>
+        /// <returns>List of absolute grid cells.</returns>
         public static List<Point> GetFootprint(ShapeType type, Point basePos, Direction facing)
         {
             var rel = GetShapeCells(type);
