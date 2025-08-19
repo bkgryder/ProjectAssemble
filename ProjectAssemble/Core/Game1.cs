@@ -43,8 +43,10 @@ namespace ProjectAssemble.Core
         // Palettes and timeline UI
         MachinePaletteUI _machinePaletteUI;
         ShapePaletteUI _shapePaletteUI;
+        ActionPaletteUI _actionPaletteUI;
         TimelineUI _timelineUI;
         ArmParameterUI _armParamUI;
+        ArmAction _pendingArmAction = ArmAction.None;
         int _currentStep = 0;
 
         // Drag state - machines
@@ -112,11 +114,14 @@ namespace ProjectAssemble.Core
             int rightX = _graphics.PreferredBackBufferWidth - 8 - 160;
             _machinePaletteUI = new MachinePaletteUI(new Rectangle(8, 8, 160, 200));
             _shapePaletteUI = new ShapePaletteUI(new Rectangle(rightX, 8, 160, 200));
+            _actionPaletteUI = new ActionPaletteUI(new Rectangle(8, 220, 160, 80));
             _timelineUI = new TimelineUI();
             _armParamUI = new ArmParameterUI();
             _machinePaletteUI.MachinePicked += OnMachinePicked;
             _shapePaletteUI.ShapePicked += OnShapePicked;
+            _actionPaletteUI.ActionPicked += OnActionPicked;
             _timelineUI.StepChanged += s => _currentStep = s;
+            _timelineUI.SlotClicked += OnTimelineSlotClicked;
 
             base.Initialize();
         }
@@ -141,9 +146,10 @@ namespace ProjectAssemble.Core
             _mouse = new Point(ms.X, ms.Y);
 
             var armsList = GetArmsSorted();
-            _timelineUI.Update(_input, GridRect, armsList);
+            _timelineUI.Update(_input, GridRect, armsList, _pendingArmAction != ArmAction.None);
             _machinePaletteUI.Update(_input);
             _shapePaletteUI.Update(_input);
+            _actionPaletteUI.Update(_input);
             _armParamUI.Update(_input);
 
             _hoverInGrid = GridRect.Contains(_mouse);
@@ -340,6 +346,27 @@ namespace ProjectAssemble.Core
             _selectedMachine = null; _selectedSource = null;
         }
 
+        void OnActionPicked(ArmAction action)
+        {
+            _pendingArmAction = action;
+        }
+
+        void OnTimelineSlotClicked(int row, int step)
+        {
+            if (_pendingArmAction == ArmAction.None) return;
+            if (_selectedMachine is ArmMachine selected)
+            {
+                var arms = GetArmsSorted();
+                int idx = arms.IndexOf(selected);
+                if (idx == row && step >= 0 && step < selected.Program.Length)
+                {
+                    selected.Program[step] = selected.Program[step] == _pendingArmAction
+                        ? ArmAction.None
+                        : _pendingArmAction;
+                }
+            }
+        }
+
 
         bool JustPressed(ButtonState cur, ButtonState prev) => cur == ButtonState.Pressed && prev == ButtonState.Released;
         bool JustReleased(ButtonState cur, ButtonState prev) => cur == ButtonState.Released && prev == ButtonState.Pressed;
@@ -353,6 +380,7 @@ namespace ProjectAssemble.Core
             // Palettes
             _machinePaletteUI.Draw(_sb, _tiles, _px, _font);
             _shapePaletteUI.Draw(_sb, _px, _font);
+            _actionPaletteUI.Draw(_sb, _px, _font);
 
             // Grid tiles
             DrawTiles();

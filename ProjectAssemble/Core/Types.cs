@@ -13,6 +13,22 @@ namespace ProjectAssemble.Core
     public enum ShapeType { L, Rect2x2 }
 
     /// <summary>
+    /// Actions that an arm can perform in the timeline.
+    /// </summary>
+    public enum ArmAction { None, Move }
+
+    /// <summary>
+    /// Timeline-related constants.
+    /// </summary>
+    public static class Timeline
+    {
+        /// <summary>
+        /// Total number of available steps in the timeline.
+        /// </summary>
+        public const int Steps = 21;
+    }
+
+    /// <summary>
     /// Cardinal directions used for machine orientation.
     /// </summary>
     public enum Direction { Up, Right, Down, Left }
