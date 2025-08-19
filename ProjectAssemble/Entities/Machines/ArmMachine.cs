@@ -46,6 +46,11 @@ namespace ProjectAssemble.Entities.Machines
         public bool Grabbed { get; set; } = false;
 
         /// <summary>
+        /// Programmed actions for each step of the timeline.
+        /// </summary>
+        public ArmAction[] Program { get; } = new ArmAction[Timeline.Steps];
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ArmMachine"/> class.
         /// </summary>
         /// <param name="basePos">Base position of the arm.</param>

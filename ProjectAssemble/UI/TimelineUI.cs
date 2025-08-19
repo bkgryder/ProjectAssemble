@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using ProjectAssemble.Core;
 using ProjectAssemble.Entities.Machines;
 using ProjectAssemble.Systems;
 
@@ -13,7 +14,6 @@ namespace ProjectAssemble.UI
     /// </summary>
     public class TimelineUI
     {
-        const int TIMESTEPS = 21;
         Rectangle _rect;
         int _hoveredStep = -1;
         int _hoveredRow = -1;
@@ -33,7 +33,7 @@ namespace ProjectAssemble.UI
         /// <summary>
         /// Gets the total number of steps available.
         /// </summary>
-        public int StepCount => TIMESTEPS;
+        public int StepCount => Timeline.Steps;
 
         /// <summary>
         /// Gets a value indicating whether the timeline is being dragged.
@@ -46,24 +46,40 @@ namespace ProjectAssemble.UI
         public event Action<int> StepChanged;
 
         /// <summary>
+        /// Occurs when a timeline slot is clicked.
+        /// </summary>
+        public event Action<int, int> SlotClicked;
+
+        /// <summary>
         /// Updates the timeline based on input and machine configuration.
         /// </summary>
-        public void Update(InputManager input, Rectangle gridRect, List<ArmMachine> arms)
+        /// <param name="input">Input manager.</param>
+        /// <param name="gridRect">Bounds of the grid.</param>
+        /// <param name="arms">Arms to display.</param>
+        /// <param name="actionMode">If set, clicks assign actions instead of scrubbing.</param>
+        public void Update(InputManager input, Rectangle gridRect, List<ArmMachine> arms, bool actionMode)
         {
             var ms = input.CurrentMouse;
             var mouse = new Point(ms.X, ms.Y);
-            int lanes = 4;
+            int lanes = Math.Max(4, arms.Count);
             int laneH = 22; int pad = 8;
             int innerHeight = lanes * laneH;
             _rect = new Rectangle(gridRect.X, gridRect.Bottom + 12, gridRect.Width, pad * 2 + innerHeight + 18);
 
-            _hoveredStep = StepAt(mouse);
-            _hoveredRow = RowAt(mouse);
+            _hoveredStep = StepAt(mouse, lanes);
+            _hoveredRow = RowAt(mouse, lanes);
 
             if (!_dragging && input.JustPressed(ms.LeftButton, input.PreviousMouse.LeftButton) && _hoveredRow >= 0)
             {
-                _dragging = true;
-                if (_hoveredStep >= 0) SetStep(_hoveredStep);
+                if (actionMode && _hoveredStep >= 0)
+                {
+                    SlotClicked?.Invoke(_hoveredRow, _hoveredStep);
+                }
+                else
+                {
+                    _dragging = true;
+                    if (_hoveredStep >= 0) SetStep(_hoveredStep);
+                }
             }
             if (_dragging && ms.LeftButton == ButtonState.Pressed)
             {
@@ -84,24 +100,24 @@ namespace ProjectAssemble.UI
             }
         }
 
-        int StepAt(Point mouse)
+        int StepAt(Point mouse, int lanes)
         {
             if (!_rect.Contains(mouse)) return -1;
-            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48; int lanes = 4;
+            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
             if (mouse.Y < inner.Y || mouse.Y >= inner.Bottom) return -1;
             int slotsW = Math.Max(40, inner.Width - labelColW);
-            int slotW = Math.Max(14, (slotsW - gap * (TIMESTEPS - 1)) / TIMESTEPS);
+            int slotW = Math.Max(14, (slotsW - gap * (Timeline.Steps - 1)) / Timeline.Steps);
             int stepWidth = slotW + gap;
             int relX = mouse.X - (inner.X + labelColW);
             int step = (int)Math.Floor(relX / (float)stepWidth);
-            return Math.Clamp(step, 0, TIMESTEPS - 1);
+            return Math.Clamp(step, 0, Timeline.Steps - 1);
         }
 
-        int RowAt(Point mouse)
+        int RowAt(Point mouse, int lanes)
         {
             if (!_rect.Contains(mouse)) return -1;
-            int pad = 8; int laneH = 22; int lanes = 4;
+            int pad = 8; int laneH = 22;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
             if (mouse.Y < inner.Y || mouse.Y >= inner.Bottom) return -1;
             int relY = mouse.Y - inner.Y;
@@ -117,11 +133,11 @@ namespace ProjectAssemble.UI
             FillRect(sb, px, _rect, new Color(30, 32, 38));
             DrawRect(sb, px, _rect, new Color(80, 85, 98), 2);
 
-            int lanes = 4;
+            int lanes = Math.Max(4, arms.Count);
             int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
             int slotsW = Math.Max(40, inner.Width - labelColW);
-            int slotW = Math.Max(14, (slotsW - gap * (TIMESTEPS - 1)) / TIMESTEPS);
+            int slotW = Math.Max(14, (slotsW - gap * (Timeline.Steps - 1)) / Timeline.Steps);
             int slotH = laneH - 2;
             int slotsX = inner.X + labelColW;
 
@@ -138,12 +154,14 @@ namespace ProjectAssemble.UI
                 DrawRect(sb, px, labelRect, new Color(60, 65, 78), 1);
                 if (font != null)
                 {
-                    string labelText = ((char)('A' + row)).ToString();
+                    string labelText = (row < arms.Count && arms[row] != null)
+                        ? arms[row].Label.ToString()
+                        : ((char)('A' + row)).ToString();
                     var size = font.MeasureString(labelText);
                     sb.DrawString(font, labelText, new Vector2(labelRect.X + 6, labelRect.Y + (laneH - size.Y) / 2f), Color.White);
                 }
 
-                for (int i = 0; i < TIMESTEPS; i++)
+                for (int i = 0; i < Timeline.Steps; i++)
                 {
                     int x = slotsX + i * (slotW + gap);
                     var r = new Rectangle(x, laneY + 1, slotW, slotH);
@@ -155,17 +173,26 @@ namespace ProjectAssemble.UI
                     else if (isHoverStep && isHoverRow) fill = new Color(200, 220, 255, 40);
                     FillRect(sb, px, r, fill);
                     DrawRect(sb, px, r, isCurrent ? new Color(120, 200, 255) : new Color(160, 170, 190), 1);
+                    if (row < arms.Count)
+                    {
+                        var act = arms[row].Program[i];
+                        if (act != ArmAction.None && font != null)
+                        {
+                            string txt = act == ArmAction.Move ? "M" : "?";
+                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.White);
+                        }
+                    }
                 }
             }
 
             if (font != null)
             {
-                for (int i = 0; i < TIMESTEPS; i += 5)
+                for (int i = 0; i < Timeline.Steps; i += 5)
                 {
                     int x = slotsX + i * (slotW + gap);
                     sb.DrawString(font, i.ToString(), new Vector2(x + 2, inner.Bottom + 2), new Color(200, 210, 230));
                 }
-                sb.DrawString(font, $"Step: {_currentStep} / {TIMESTEPS - 1}", new Vector2(_rect.X + 6, _rect.Y - 18), Color.White);
+                sb.DrawString(font, $"Step: {_currentStep} / {Timeline.Steps - 1}", new Vector2(_rect.X + 6, _rect.Y - 18), Color.White);
             }
         }
 
