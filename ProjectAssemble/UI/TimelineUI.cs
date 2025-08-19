@@ -168,7 +168,7 @@ namespace ProjectAssemble.UI
                         ? arms[row].Label.ToString()
                         : ((char)('A' + row)).ToString();
                     var size = font.MeasureString(labelText);
-                    sb.DrawString(font, labelText, new Vector2(labelRect.X + 6, labelRect.Y + (laneH - size.Y) / 2f), Color.White);
+                    sb.DrawString(font, labelText, new Vector2(labelRect.X + 6, labelRect.Y + (laneH - size.Y) / 2f), Color.Black);
                 }
 
                 for (int i = 0; i < Timeline.Steps; i++)
@@ -189,7 +189,7 @@ namespace ProjectAssemble.UI
                         if (act != ArmAction.None && font != null)
                         {
                             string txt = act == ArmAction.Move ? "M" : "?";
-                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.White);
+                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.Black);
                         }
                     }
                 }

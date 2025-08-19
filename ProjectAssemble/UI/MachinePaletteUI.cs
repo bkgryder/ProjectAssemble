@@ -63,11 +63,11 @@ namespace ProjectAssemble.UI
             {
                 var dest = new Rectangle(inner.X + 12, inner.Y + 12, 32, 32);
                 sb.Draw(tiles, dest, SrcCR(tiles, 1, 2), Color.White);
-                if (font != null) sb.DrawString(font, "Arm", new Vector2(dest.Right + 8, dest.Y + 8), Color.White);
+                if (font != null) sb.DrawString(font, "Arm", new Vector2(dest.Right + 8, dest.Y + 8), Color.Black);
             }
             else if (font != null)
             {
-                sb.DrawString(font, "Arm", new Vector2(inner.X + 8, inner.Y + 8), Color.White);
+                sb.DrawString(font, "Arm", new Vector2(inner.X + 8, inner.Y + 8), Color.Black);
             }
         }
 

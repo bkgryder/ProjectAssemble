@@ -61,7 +61,7 @@ namespace ProjectAssemble.UI
             FillRect(sb, px, r, new Color(255, 255, 255, 8));
             DrawRect(sb, px, r, Color.White, 1);
             if (font != null)
-                sb.DrawString(font, "Move", new Vector2(r.X + 4, r.Y + 2), Color.White);
+                sb.DrawString(font, "Move", new Vector2(r.X + 4, r.Y + 2), Color.Black);
         }
 
         static void FillRect(SpriteBatch sb, Texture2D px, Rectangle r, Color c) => sb.Draw(px, r, c);

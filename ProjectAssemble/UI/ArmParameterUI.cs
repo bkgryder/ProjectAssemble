@@ -94,15 +94,15 @@ namespace ProjectAssemble.UI
             {
                 FillRect(sb, px, LabelRect, new Color(255, 255, 255, 8));
                 DrawRect(sb, px, LabelRect, Color.Black, 1);
-                sb.DrawString(font, $"Label: {_target.Label}", new Vector2(LabelRect.X + 4, LabelRect.Y + 2), Color.White);
+                sb.DrawString(font, $"Label: {_target.Label}", new Vector2(LabelRect.X + 4, LabelRect.Y + 2), Color.Black);
 
                 FillRect(sb, px, MoveRect, new Color(255, 255, 255, 8));
                 DrawRect(sb, px, MoveRect, Color.Black, 1);
-                sb.DrawString(font, $"Move: {_target.MoveAmount}", new Vector2(MoveRect.X + 4, MoveRect.Y + 2), Color.White);
+                sb.DrawString(font, $"Move: {_target.MoveAmount}", new Vector2(MoveRect.X + 4, MoveRect.Y + 2), Color.Black);
 
                 FillRect(sb, px, GrabRect, new Color(255, 255, 255, 8));
                 DrawRect(sb, px, GrabRect, Color.Black, 1);
-                sb.DrawString(font, $"Grabbed: {_target.Grabbed}", new Vector2(GrabRect.X + 4, GrabRect.Y + 2), Color.White);
+                sb.DrawString(font, $"Grabbed: {_target.Grabbed}", new Vector2(GrabRect.X + 4, GrabRect.Y + 2), Color.Black);
             }
         }
 
