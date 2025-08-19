@@ -44,6 +44,7 @@ namespace ProjectAssemble.Core
         MachinePaletteUI _machinePaletteUI;
         ShapePaletteUI _shapePaletteUI;
         TimelineUI _timelineUI;
+        ArmParameterUI _armParamUI;
         int _currentStep = 0;
 
         // Drag state - machines
@@ -112,6 +113,7 @@ namespace ProjectAssemble.Core
             _machinePaletteUI = new MachinePaletteUI(new Rectangle(8, 8, 160, 200));
             _shapePaletteUI = new ShapePaletteUI(new Rectangle(rightX, 8, 160, 200));
             _timelineUI = new TimelineUI();
+            _armParamUI = new ArmParameterUI();
             _machinePaletteUI.MachinePicked += OnMachinePicked;
             _shapePaletteUI.ShapePicked += OnShapePicked;
             _timelineUI.StepChanged += s => _currentStep = s;
@@ -142,6 +144,7 @@ namespace ProjectAssemble.Core
             _timelineUI.Update(_input, GridRect, armsList);
             _machinePaletteUI.Update(_input);
             _shapePaletteUI.Update(_input);
+            _armParamUI.Update(_input);
 
             _hoverInGrid = GridRect.Contains(_mouse);
             _hoverCell = ScreenToCell(_mouse);
@@ -295,13 +298,20 @@ namespace ProjectAssemble.Core
                 }
             }
 
-            // ===== Right-click to delete =====
-            if (JustPressed(ms.RightButton, _input.PreviousMouse.RightButton) && _hoverInGrid)
+            // ===== Right-click to delete or configure arm =====
+            if (!_armParamUI.Visible && JustPressed(ms.RightButton, _input.PreviousMouse.RightButton) && _hoverInGrid)
             {
-                var inst = InstanceAtCell(_hoverCell);
-                if (inst != null) ShapeInstances.Remove(inst);
-                else if (_hoverSource != null) ShapeSources.Remove(_hoverSource);
-                else if (_hoverMachine != null) Machines.Remove(_hoverMachine);
+                if (_hoverMachine is ArmMachine arm)
+                {
+                    _armParamUI.Show(arm, CellRect(arm.BasePos));
+                }
+                else
+                {
+                    var inst = InstanceAtCell(_hoverCell);
+                    if (inst != null) ShapeInstances.Remove(inst);
+                    else if (_hoverSource != null) ShapeSources.Remove(_hoverSource);
+                    else if (_hoverMachine != null) Machines.Remove(_hoverMachine);
+                }
             }
 
             // Auto-replenish shapes from sources
@@ -423,6 +433,7 @@ namespace ProjectAssemble.Core
 
             // Timeline
             _timelineUI.Draw(_sb, _px, _font, GetArmsSorted());
+            _armParamUI.Draw(_sb, _px, _font);
 
             // Help text
             if (_font != null)
