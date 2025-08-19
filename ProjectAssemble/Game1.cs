@@ -8,6 +8,7 @@ using ProjectAssemble.World;
 using ProjectAssemble.Entities.Machines;
 using ProjectAssemble.Entities.Shapes;
 using ProjectAssemble.Systems;
+using ProjectAssemble.UI;
 
 namespace ProjectAssemble
 {
@@ -37,17 +38,11 @@ namespace ProjectAssemble
         // Per-cell tile indices (background floor etc.)
         int[,] _tileIds;
 
-        // Palettes
-        Rectangle _machinePaletteRect = new Rectangle(8, 8, 160, 200);
-        Rectangle _shapePaletteRect; // computed in Initialize based on backbuffer
-
-        // Timeline
-        const int TIMESTEPS = 21; // 0..20 inclusive
-        Rectangle _timelineRect;  // recomputed each Update to fit lane count
+        // Palettes and timeline UI
+        MachinePaletteUI _machinePaletteUI;
+        ShapePaletteUI _shapePaletteUI;
+        TimelineUI _timelineUI;
         int _currentStep = 0;
-        int _hoveredStep = -1;
-        int _hoveredRow = -1; // index into sorted arms list
-        bool _timelineDragging = false;
 
         // Drag state - machines
         bool _dragging = false;
@@ -107,12 +102,14 @@ namespace ProjectAssemble
                 for (int y = 0; y < GRID_H; y++)
                     _tileIds[x, y] = 0; // default floor index
 
-            // Right-side palette placement
+            // UI components
             int rightX = _graphics.PreferredBackBufferWidth - 8 - 160;
-            _shapePaletteRect = new Rectangle(rightX, 8, 160, 200);
-
-            // Initial timeline rect; height will adjust each frame based on lane count
-            _timelineRect = new Rectangle(_gridOrigin.X, GridRect.Bottom + 12, GRID_W * TILE, 60);
+            _machinePaletteUI = new MachinePaletteUI(new Rectangle(8, 8, 160, 200));
+            _shapePaletteUI = new ShapePaletteUI(new Rectangle(rightX, 8, 160, 200));
+            _timelineUI = new TimelineUI();
+            _machinePaletteUI.MachinePicked += OnMachinePicked;
+            _shapePaletteUI.ShapePicked += OnShapePicked;
+            _timelineUI.StepChanged += s => _currentStep = s;
 
             base.Initialize();
         }
@@ -136,63 +133,21 @@ namespace ProjectAssemble
 
             _mouse = new Point(ms.X, ms.Y);
 
-            // Recompute timeline height to fit the number of Arm lanes
             var armsList = GetArmsSorted();
-            int lanes = Math.Max(1, armsList.Count);
-            int laneH = 22; int pad = 8; // vertical padding inside timeline panel
-            int labelColW = 48; // left label column width
-            int gap = 4; // horizontal gap between steps
-            int innerHeight = lanes * laneH;
-            _timelineRect = new Rectangle(_gridOrigin.X, GridRect.Bottom + 12, GRID_W * TILE, pad * 2 + innerHeight + 18); // extra for tick labels
+            _timelineUI.Update(_input, GridRect, armsList);
+            _machinePaletteUI.Update(_input);
+            _shapePaletteUI.Update(_input);
 
-            // Hover
             _hoverInGrid = GridRect.Contains(_mouse);
             _hoverCell = ScreenToCell(_mouse);
             _hoverMachine = _hoverInGrid ? MachineAtCell(_hoverCell) : null;
             _hoverSource = _hoverInGrid ? SourceAtCell(_hoverCell) : null;
 
-            // Hover step/row calc
-            _hoveredStep = TimelineStepAt(_mouse);
-            _hoveredRow = TimelineRowAt(_mouse);
-
-            // ===== Timeline drag/scrub handling =====
-            if (!_dragging && !_draggingShape)
-            {
-                if (!_timelineDragging && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _timelineRect.Contains(_mouse))
-                {
-                    _timelineDragging = true;
-                    if (_hoveredStep >= 0) _currentStep = _hoveredStep;
-                }
-                if (_timelineDragging && ms.LeftButton == ButtonState.Pressed)
-                {
-                    if (_hoveredStep >= 0) _currentStep = _hoveredStep;
-                }
-                if (_timelineDragging && JustReleased(ms.LeftButton, _input.PreviousMouse.LeftButton))
-                {
-                    _timelineDragging = false;
-                }
-            }
-
             // Rebuild occupancy from placed machines & shapes
             _worldManager.RebuildOccupancy();
 
-            // ===== Drag start from machine palette =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _machinePaletteRect.Contains(_mouse))
-            {
-                var picked = PaletteMachineAt(_mouse);
-                if (picked.HasValue)
-                {
-                    _dragging = true; _draggingFromPalette = true; _draggingExisting = false;
-                    _dragType = picked.Value;
-                    _ghostFacing = Direction.Right;
-                    _ghostExt = 0;
-                    _pickedMachine = null;
-                    _selectedMachine = null; _selectedSource = null;
-                }
-            }
-
             // ===== Drag start by picking an existing machine =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverMachine != null)
+            if (!_timelineUI.IsDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverMachine != null)
             {
                 _dragging = true; _draggingFromPalette = false; _draggingExisting = true;
                 _pickedMachine = _hoverMachine; _pickedOriginCell = _pickedMachine.BasePos;
@@ -206,22 +161,8 @@ namespace ProjectAssemble
                 _selectedMachine = null; _selectedSource = null;
             }
 
-            // ===== Drag start from shape palette =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _shapePaletteRect.Contains(_mouse))
-            {
-                var picked = PaletteShapeAt(_mouse);
-                if (picked.HasValue)
-                {
-                    _draggingShape = true; _draggingShapeExisting = false;
-                    _dragShapeType = picked.Value;
-                    _ghostShapeFacing = Direction.Right;
-                    _pickedSource = null;
-                    _selectedMachine = null; _selectedSource = null;
-                }
-            }
-
             // ===== Drag start by picking an existing shape source =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverSource != null)
+            if (!_timelineUI.IsDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverSource != null)
             {
                 _draggingShape = true; _draggingShapeExisting = true;
                 _pickedSource = _hoverSource;
@@ -359,6 +300,27 @@ namespace ProjectAssemble
             base.Update(gameTime);
         }
 
+        void OnMachinePicked(MachineType type)
+        {
+            if (_timelineUI.IsDragging || _dragging || _draggingShape) return;
+            _dragging = true; _draggingFromPalette = true; _draggingExisting = false;
+            _dragType = type;
+            _ghostFacing = Direction.Right;
+            _ghostExt = 0;
+            _pickedMachine = null;
+            _selectedMachine = null; _selectedSource = null;
+        }
+
+        void OnShapePicked(ShapeType type)
+        {
+            if (_timelineUI.IsDragging || _dragging || _draggingShape) return;
+            _draggingShape = true; _draggingShapeExisting = false;
+            _dragShapeType = type;
+            _ghostShapeFacing = Direction.Right;
+            _pickedSource = null;
+            _selectedMachine = null; _selectedSource = null;
+        }
+
 
         bool JustPressed(ButtonState cur, ButtonState prev) => cur == ButtonState.Pressed && prev == ButtonState.Released;
         bool JustReleased(ButtonState cur, ButtonState prev) => cur == ButtonState.Released && prev == ButtonState.Pressed;
@@ -370,8 +332,8 @@ namespace ProjectAssemble
             _sb.Begin(samplerState: SamplerState.PointClamp);
 
             // Palettes
-            DrawMachinePalette();
-            DrawShapePalette();
+            _machinePaletteUI.Draw(_sb, _tiles, _px, _font);
+            _shapePaletteUI.Draw(_sb, _px, _font);
 
             // Grid tiles
             DrawTiles();
@@ -451,13 +413,13 @@ namespace ProjectAssemble
             }
 
             // Timeline
-            DrawTimeline();
+            _timelineUI.Draw(_sb, _px, _font, GetArmsSorted());
 
             // Help text
             if (_font != null)
             {
-                string help = "Hover/select + hotkeys. Arms auto-label A,B,C... Move/rotate/extend. Shapes auto-replenish. Drag timeline lanes to scrub step 0-20.";
-                _sb.DrawString(_font, help, new Vector2(12, _timelineRect.Bottom + 10), Color.White);
+                string help = $"Hover/select + hotkeys. Arms auto-label A,B,C... Move/rotate/extend. Shapes auto-replenish. Drag timeline lanes to scrub step 0-{_timelineUI.StepCount - 1}.";
+                _sb.DrawString(_font, help, new Vector2(12, _timelineUI.Rect.Bottom + 10), Color.White);
             }
 
             _sb.End();
@@ -491,103 +453,6 @@ namespace ProjectAssemble
                 var s = a.Label == ' ' ? "?" : a.Label.ToString();
                 _sb.DrawString(_font, s, new Vector2(r.X + 2, r.Y + 1), new Color(255, 240, 140));
             }
-        }
-
-        // ======= Timeline helpers =======
-        void DrawTimeline()
-        {
-            // Collect lanes (arms sorted by label)
-            var arms = GetArmsSorted();
-            int lanes = Math.Max(1, arms.Count);
-
-            // Panel
-            FillRect(_timelineRect, new Color(30, 32, 38));
-            DrawRect(_timelineRect, new Color(80, 85, 98), 2);
-
-            // Geometry (must match TimelineStepAt/TimelineRowAt)
-            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
-            var inner = new Rectangle(_timelineRect.X + pad, _timelineRect.Y + pad, _timelineRect.Width - pad * 2, lanes * laneH);
-            int slotsW = Math.Max(40, inner.Width - labelColW);
-            int slotW = Math.Max(14, (slotsW - gap * (TIMESTEPS - 1)) / TIMESTEPS);
-            int slotH = laneH - 2;
-            int slotsX = inner.X + labelColW;
-
-            // Lanes
-            for (int row = 0; row < lanes; row++)
-            {
-                var laneY = inner.Y + row * laneH;
-                var laneRect = new Rectangle(inner.X, laneY, inner.Width, laneH);
-                // stripe background
-                var stripe = (row % 2 == 0) ? new Color(255, 255, 255, 12) : new Color(255, 255, 255, 6);
-                FillRect(laneRect, stripe);
-
-                // Label cell
-                var labelRect = new Rectangle(inner.X, laneY, labelColW - 6, laneH);
-                DrawRect(labelRect, new Color(60, 65, 78), 1);
-                if (_font != null)
-                {
-                    string labelText = (row < arms.Count) ? ("Arm " + arms[row].Label) : "";
-                    var size = _font.MeasureString(labelText);
-                    _sb.DrawString(_font, labelText, new Vector2(labelRect.X + 6, labelRect.Y + (laneH - size.Y) / 2f), Color.White);
-                }
-
-                // Slots
-                for (int i = 0; i < TIMESTEPS; i++)
-                {
-                    int x = slotsX + i * (slotW + gap);
-                    var r = new Rectangle(x, laneY + 1, slotW, slotH);
-                    bool isCurrent = (i == _currentStep);
-                    bool isHoverStep = (i == _hoveredStep);
-                    bool isHoverRow = (row == _hoveredRow);
-                    var fill = new Color(255, 255, 255, 10);
-                    if (isCurrent) fill = new Color(120, 200, 255, 90);
-                    else if (isHoverStep && isHoverRow) fill = new Color(200, 220, 255, 40);
-                    FillRect(r, fill);
-                    DrawRect(r, isCurrent ? new Color(120, 200, 255) : new Color(160, 170, 190), 1);
-                }
-            }
-
-            // Tick labels along the bottom + current step header
-            if (_font != null)
-            {
-                for (int i = 0; i < TIMESTEPS; i += 5)
-                {
-                    int x = slotsX + i * (slotW + gap);
-                    var s = i.ToString();
-                    _sb.DrawString(_font, s, new Vector2(x + 2, inner.Bottom + 2), new Color(200, 210, 230));
-                }
-                _sb.DrawString(_font, $"Step: {_currentStep} / {TIMESTEPS - 1}", new Vector2(_timelineRect.X + 6, _timelineRect.Y - 18), Color.White);
-            }
-        }
-
-        int TimelineStepAt(Point mouse)
-        {
-            if (!_timelineRect.Contains(mouse)) return -1;
-            // match layout from DrawTimeline
-            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
-            var arms = GetArmsSorted(); int lanes = Math.Max(1, arms.Count);
-            var inner = new Rectangle(_timelineRect.X + pad, _timelineRect.Y + pad, _timelineRect.Width - pad * 2, lanes * laneH);
-            int slotsW = Math.Max(40, inner.Width - labelColW);
-            int slotW = Math.Max(14, (slotsW - gap * (TIMESTEPS - 1)) / TIMESTEPS);
-            int totalW = TIMESTEPS * slotW + (TIMESTEPS - 1) * gap;
-            int relX = mouse.X - (inner.X + labelColW);
-            if (relX < 0 || relX >= totalW) return -1;
-            int step = relX / (slotW + gap);
-            int insideX = relX % (slotW + gap);
-            if (insideX >= slotW) return -1; // gap
-            return Math.Clamp(step, 0, TIMESTEPS - 1);
-        }
-
-        int TimelineRowAt(Point mouse)
-        {
-            if (!_timelineRect.Contains(mouse)) return -1;
-            int pad = 8; int laneH = 22;
-            var arms = GetArmsSorted(); int lanes = Math.Max(1, arms.Count);
-            var inner = new Rectangle(_timelineRect.X + pad, _timelineRect.Y + pad, _timelineRect.Width - pad * 2, lanes * laneH);
-            if (mouse.Y < inner.Y || mouse.Y >= inner.Bottom) return -1;
-            int relY = mouse.Y - inner.Y;
-            int row = relY / laneH;
-            return Math.Clamp(row, 0, lanes - 1);
         }
 
         // ======= Tile helpers =======
@@ -651,73 +516,6 @@ namespace ProjectAssemble
             _sb.Draw(_px, new Rectangle(r.X, r.Bottom - t, r.Width, t), c);
             _sb.Draw(_px, new Rectangle(r.X, r.Y, t, r.Height), c);
             _sb.Draw(_px, new Rectangle(r.Right - t, r.Y, t, r.Height), c);
-        }
-
-        void DrawMachinePalette()
-        {
-            FillRect(_machinePaletteRect, new Color(30, 32, 38));
-            DrawRect(_machinePaletteRect, new Color(80, 85, 98), 2);
-
-            var inner = new Rectangle(_machinePaletteRect.X + 8, _machinePaletteRect.Y + 8, _machinePaletteRect.Width - 16, 56);
-            FillRect(inner, new Color(255, 255, 255, 8));
-            DrawRect(inner, Color.White, 1);
-
-            if (_tiles != null)
-            {
-                var dest = new Rectangle(inner.X + 12, inner.Y + 12, 32, 32); // 2x scale preview
-                _sb.Draw(_tiles, dest, SrcCR(1, 2), Color.White);
-                if (_font != null) _sb.DrawString(_font, "Arm", new Vector2(dest.Right + 8, dest.Y + 8), Color.White);
-            }
-            else
-            {
-                if (_font != null) _sb.DrawString(_font, "Arm", new Vector2(inner.X + 8, inner.Y + 8), Color.White);
-            }
-        }
-
-        void DrawShapePalette()
-        {
-            FillRect(_shapePaletteRect, new Color(30, 32, 38));
-            DrawRect(_shapePaletteRect, new Color(80, 85, 98), 2);
-
-            if (_font != null)
-                _sb.DrawString(_font, "Shapes", new Vector2(_shapePaletteRect.X + 8, _shapePaletteRect.Y + 8), Color.White);
-
-            var cellY = _shapePaletteRect.Y + 32;
-            DrawShapePaletteEntry(new Rectangle(_shapePaletteRect.X + 8, cellY, _shapePaletteRect.Width - 16, 44), ShapeType.L);
-            cellY += 52;
-            DrawShapePaletteEntry(new Rectangle(_shapePaletteRect.X + 8, cellY, _shapePaletteRect.Width - 16, 44), ShapeType.Rect2x2);
-        }
-
-        void DrawShapePaletteEntry(Rectangle r, ShapeType t)
-        {
-            FillRect(r, new Color(255, 255, 255, 8));
-            DrawRect(r, Color.White, 1);
-            var center = new Point(r.X + r.Width / 2, r.Y + r.Height / 2);
-            // tiny preview of shape footprint
-            var cells = GetFootprint(t, new Point(0, 0), Direction.Right);
-            foreach (var p in cells)
-            {
-                var pr = new Rectangle(center.X - 16 + p.X * 8, center.Y - 8 + p.Y * 8, 8, 8);
-                FillRect(pr, new Color(160, 255, 180, 180));
-                DrawRect(pr, new Color(90, 200, 120), 1);
-            }
-            if (_font != null) _sb.DrawString(_font, t.ToString(), new Vector2(r.X + 8, r.Bottom - 18), Color.White);
-        }
-
-        MachineType? PaletteMachineAt(Point mouse)
-        {
-            var inner = new Rectangle(_machinePaletteRect.X + 8, _machinePaletteRect.Y + 8, _machinePaletteRect.Width - 16, 56);
-            if (inner.Contains(mouse)) return MachineType.Arm;
-            return null;
-        }
-
-        ShapeType? PaletteShapeAt(Point mouse)
-        {
-            var r1 = new Rectangle(_shapePaletteRect.X + 8, _shapePaletteRect.Y + 32, _shapePaletteRect.Width - 16, 44);
-            var r2 = new Rectangle(_shapePaletteRect.X + 8, _shapePaletteRect.Y + 84, _shapePaletteRect.Width - 16, 44);
-            if (r1.Contains(mouse)) return ShapeType.L;
-            if (r2.Contains(mouse)) return ShapeType.Rect2x2;
-            return null;
         }
 
         IMachine MachineAtCell(Point cell)
