@@ -207,7 +207,11 @@ namespace ProjectAssemble.Core
                         switch (_dragType)
                         {
                             case MachineType.Arm:
-                                var label = NextArmLabel();
+                                char label;
+                                if (_draggingExisting && _pickedMachine is ArmMachine existing)
+                                    label = existing.Label;
+                                else
+                                    label = NextArmLabel();
                                 var arm = new ArmMachine(cell, _ghostFacing) { Extension = _ghostExt, Label = label };
                                 Machines.Add(arm); placed = true; break;
                         }
@@ -423,7 +427,7 @@ namespace ProjectAssemble.Core
             // Help text
             if (_font != null)
             {
-                string help = $"Hover/select + hotkeys. Arms auto-label A,B,C... Move/rotate/extend. Shapes auto-replenish. Drag timeline lanes to scrub step 0-{_timelineUI.StepCount - 1}.";
+                string help = $"Hover/select + hotkeys. Arms auto-label A-D. Move/rotate/extend. Shapes auto-replenish. Drag timeline lanes to scrub step 0-{_timelineUI.StepCount - 1}.";
                 _sb.DrawString(_font, help, new Vector2(12, _timelineUI.Rect.Bottom + 10), Color.White);
             }
 
@@ -437,7 +441,7 @@ namespace ProjectAssemble.Core
             var used = new HashSet<char>();
             foreach (var m in Machines)
                 if (m is ArmMachine a && a.Label != ' ') used.Add(a.Label);
-            for (char c = 'A'; c <= 'Z'; c++) if (!used.Contains(c)) return c;
+            for (char c = 'A'; c <= 'D'; c++) if (!used.Contains(c)) return c;
             return '?';
         }
 
