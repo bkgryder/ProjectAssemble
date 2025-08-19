@@ -179,7 +179,7 @@ namespace ProjectAssemble.UI
                         if (act != ArmAction.None && font != null)
                         {
                             string txt = act == ArmAction.Move ? "M" : "?";
-                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.White);
+                            sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.Black);
                         }
                     }
                 }
