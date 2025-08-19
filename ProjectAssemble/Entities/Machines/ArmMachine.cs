@@ -36,6 +36,16 @@ namespace ProjectAssemble.Entities.Machines
         public char Label { get; set; } = ' '; // 'A','B',...
 
         /// <summary>
+        /// Gets or sets how far the arm moves when commanded.
+        /// </summary>
+        public int MoveAmount { get; set; } = 1;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the arm is currently grabbing.
+        /// </summary>
+        public bool Grabbed { get; set; } = false;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="ArmMachine"/> class.
         /// </summary>
         /// <param name="basePos">Base position of the arm.</param>
