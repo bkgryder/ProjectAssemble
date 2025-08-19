@@ -1,8 +1,12 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using ProjectAssemble.Core;
+using ProjectAssemble.World;
+using ProjectAssemble.Entities.Machines;
+using ProjectAssemble.Entities.Shapes;
 
 namespace ProjectAssemble
 {
@@ -830,122 +834,5 @@ namespace ProjectAssemble
                 if (_font != null) _sb.DrawString(_font, src.Type.ToString(), new Vector2(r.X + 2, r.Y + 1), new Color(200, 220, 255));
             }
         }
-    }
-
-    // ======= World & machines =======
-    public class GridWorld
-    {
-        public readonly int W, H;
-        bool[,] _occ;
-        public GridWorld(int w, int h) { W = w; H = h; _occ = new bool[w, h]; }
-        public void BeginOccupancy() { Array.Clear(_occ, 0, _occ.Length); }
-        public void EndOccupancy() { }
-        public bool InBounds(Point p) => p.X >= 0 && p.Y >= 0 && p.X < W && p.Y < H;
-        public bool IsOccupied(Point p) => InBounds(p) && _occ[p.X, p.Y];
-        public void MarkOccupied(Point p) { if (InBounds(p)) _occ[p.X, p.Y] = true; }
-    }
-
-    public enum MachineType { Arm }
-    public enum ShapeType { L, Rect2x2 }
-    public enum Direction { Up, Right, Down, Left }
-
-    public static class Dir
-    {
-        public static Point ToDelta(Direction d) => d switch
-        {
-            Direction.Up => new Point(0, -1),
-            Direction.Right => new Point(1, 0),
-            Direction.Down => new Point(0, 1),
-            Direction.Left => new Point(-1, 0),
-            _ => Point.Zero
-        };
-        public static float Angle(Direction d) => d switch
-        {
-            Direction.Right => 0f,
-            Direction.Down => MathHelper.PiOver2,
-            Direction.Left => MathHelper.Pi,
-            Direction.Up => -MathHelper.PiOver2,
-            _ => 0f
-        };
-    }
-
-    public interface IMachine
-    {
-        MachineType Type { get; }
-        Point BasePos { get; }
-        void Draw(SpriteBatch sb, Texture2D tiles, Texture2D px, Point origin, int tilesPerRow);
-    }
-
-    public class ArmMachine : IMachine
-    {
-        public const int MaxExtension = 3; // debug clamp
-        public MachineType Type => MachineType.Arm;
-        public Point BasePos { get; private set; }
-        public Direction Facing { get; set; }
-        public int Extension { get; set; } = 0; // tiles beyond base along Facing
-        public char Label { get; set; } = ' '; // 'A','B',...
-
-        public ArmMachine(Point basePos, Direction facing)
-        {
-            BasePos = basePos;
-            Facing = facing;
-        }
-
-        public void Draw(SpriteBatch sb, Texture2D tiles, Texture2D px, Point origin, int tilesPerRow)
-        {
-            var center = new Vector2(origin.X + BasePos.X * 16 + 8, origin.Y + BasePos.Y * 16 + 8);
-            Vector2 originPx = new Vector2(8, 8);
-            float rot = Dir.Angle(Facing);
-
-            if (tiles == null)
-            {
-                sb.Draw(px, new Rectangle((int)center.X - 8, (int)center.Y - 8, 16, 16), new Color(180, 180, 200));
-                return;
-            }
-
-            Rectangle SRC(int c, int r)
-            {
-                int idx = (r - 1) * tilesPerRow + (c - 1);
-                int tx = idx % tilesPerRow;
-                int ty = idx / tilesPerRow;
-                return new Rectangle(tx * 16, ty * 16, 16, 16);
-            }
-
-            var baseSrc = (Extension > 0) ? SRC(2, 2) : SRC(1, 2);
-            sb.Draw(tiles, center, baseSrc, Color.White, rot, originPx, 1f, SpriteEffects.None, 0f);
-
-            if (Extension <= 0) return;
-
-            var d = Dir.ToDelta(Facing);
-            for (int i = 1; i < Extension; i++)
-            {
-                var segCenter = new Vector2(origin.X + (BasePos.X + d.X * i) * 16 + 8,
-                                             origin.Y + (BasePos.Y + d.Y * i) * 16 + 8);
-                sb.Draw(tiles, segCenter, SRC(3, 1), Color.White, rot, originPx, 1f, SpriteEffects.None, 0f);
-            }
-            var headCenter = new Vector2(origin.X + (BasePos.X + d.X * Extension) * 16 + 8,
-                                          origin.Y + (BasePos.Y + d.Y * Extension) * 16 + 8);
-            sb.Draw(tiles, headCenter, SRC(2, 1), Color.White, rot, originPx, 1f, SpriteEffects.None, 0f);
-        }
-    }
-
-    // Shapes data
-    public class ShapeSource
-    {
-        static int _nextId = 1;
-        public int Id { get; private set; }
-        public Point BasePos;
-        public ShapeType Type;
-        public Direction Facing;
-        public ShapeSource(Point basePos, ShapeType type, Direction facing)
-        { Id = _nextId++; BasePos = basePos; Type = type; Facing = facing; }
-    }
-
-    public class ShapeInstance
-    {
-        public int SourceId;
-        public List<Point> Cells; // absolute cells
-        public ShapeInstance(int sourceId, List<Point> cells)
-        { SourceId = sourceId; Cells = cells; }
     }
 }
