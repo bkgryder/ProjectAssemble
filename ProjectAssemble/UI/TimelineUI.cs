@@ -185,10 +185,10 @@ namespace ProjectAssemble.UI
                     DrawRect(sb, px, r, isCurrent ? new Color(120, 200, 255) : new Color(160, 170, 190), 1);
                     if (row < arms.Count)
                     {
-                        var act = arms[row].Program[i];
-                        if (act != ArmAction.None && font != null)
+                        var cmd = arms[row].Program[i];
+                        if (cmd.Action != ArmAction.None && font != null)
                         {
-                            string txt = act == ArmAction.Move ? "M" : "?";
+                            string txt = cmd.Action == ArmAction.Move ? "M" : "?";
                             sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.Black);
                         }
                     }
