@@ -52,15 +52,15 @@ namespace ProjectAssemble.UI
         {
             var ms = input.CurrentMouse;
             var mouse = new Point(ms.X, ms.Y);
-            int lanes = Math.Max(1, arms.Count);
+            int lanes = 4;
             int laneH = 22; int pad = 8;
             int innerHeight = lanes * laneH;
             _rect = new Rectangle(gridRect.X, gridRect.Bottom + 12, gridRect.Width, pad * 2 + innerHeight + 18);
 
-            _hoveredStep = StepAt(mouse, arms);
-            _hoveredRow = RowAt(mouse, arms);
+            _hoveredStep = StepAt(mouse);
+            _hoveredRow = RowAt(mouse);
 
-            if (!_dragging && input.JustPressed(ms.LeftButton, input.PreviousMouse.LeftButton) && _rect.Contains(mouse))
+            if (!_dragging && input.JustPressed(ms.LeftButton, input.PreviousMouse.LeftButton) && _hoveredRow >= 0)
             {
                 _dragging = true;
                 if (_hoveredStep >= 0) SetStep(_hoveredStep);
@@ -84,28 +84,24 @@ namespace ProjectAssemble.UI
             }
         }
 
-        int StepAt(Point mouse, List<ArmMachine> arms)
+        int StepAt(Point mouse)
         {
             if (!_rect.Contains(mouse)) return -1;
-            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
-            int lanes = Math.Max(1, arms.Count);
+            int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48; int lanes = 4;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
+            if (mouse.Y < inner.Y || mouse.Y >= inner.Bottom) return -1;
             int slotsW = Math.Max(40, inner.Width - labelColW);
             int slotW = Math.Max(14, (slotsW - gap * (TIMESTEPS - 1)) / TIMESTEPS);
-            int totalW = TIMESTEPS * slotW + (TIMESTEPS - 1) * gap;
+            int stepWidth = slotW + gap;
             int relX = mouse.X - (inner.X + labelColW);
-            if (relX < 0 || relX >= totalW) return -1;
-            int step = relX / (slotW + gap);
-            int insideX = relX % (slotW + gap);
-            if (insideX >= slotW) return -1;
+            int step = (int)Math.Floor(relX / (float)stepWidth);
             return Math.Clamp(step, 0, TIMESTEPS - 1);
         }
 
-        int RowAt(Point mouse, List<ArmMachine> arms)
+        int RowAt(Point mouse)
         {
             if (!_rect.Contains(mouse)) return -1;
-            int pad = 8; int laneH = 22;
-            int lanes = Math.Max(1, arms.Count);
+            int pad = 8; int laneH = 22; int lanes = 4;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
             if (mouse.Y < inner.Y || mouse.Y >= inner.Bottom) return -1;
             int relY = mouse.Y - inner.Y;
@@ -121,7 +117,7 @@ namespace ProjectAssemble.UI
             FillRect(sb, px, _rect, new Color(30, 32, 38));
             DrawRect(sb, px, _rect, new Color(80, 85, 98), 2);
 
-            int lanes = Math.Max(1, arms.Count);
+            int lanes = 4;
             int pad = 8; int gap = 4; int laneH = 22; int labelColW = 48;
             var inner = new Rectangle(_rect.X + pad, _rect.Y + pad, _rect.Width - pad * 2, lanes * laneH);
             int slotsW = Math.Max(40, inner.Width - labelColW);
@@ -135,12 +131,14 @@ namespace ProjectAssemble.UI
                 var laneRect = new Rectangle(inner.X, laneY, inner.Width, laneH);
                 var stripe = (row % 2 == 0) ? new Color(255, 255, 255, 12) : new Color(255, 255, 255, 6);
                 FillRect(sb, px, laneRect, stripe);
+                if (row == _hoveredRow)
+                    FillRect(sb, px, laneRect, new Color(200, 220, 255, 20));
 
                 var labelRect = new Rectangle(inner.X, laneY, labelColW - 6, laneH);
                 DrawRect(sb, px, labelRect, new Color(60, 65, 78), 1);
-                if (font != null && row < arms.Count)
+                if (font != null)
                 {
-                    string labelText = "Arm " + arms[row].Label;
+                    string labelText = ((char)('A' + row)).ToString();
                     var size = font.MeasureString(labelText);
                     sb.DrawString(font, labelText, new Vector2(labelRect.X + 6, labelRect.Y + (laneH - size.Y) / 2f), Color.White);
                 }
