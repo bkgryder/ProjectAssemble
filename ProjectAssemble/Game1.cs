@@ -7,6 +7,7 @@ using ProjectAssemble.Core;
 using ProjectAssemble.World;
 using ProjectAssemble.Entities.Machines;
 using ProjectAssemble.Entities.Shapes;
+using ProjectAssemble.Systems;
 
 namespace ProjectAssemble
 {
@@ -68,12 +69,15 @@ namespace ProjectAssemble
         ShapeSource _pickedSource = null; // when dragging existing shape source
         Direction _ghostShapeFacing = Direction.Right;
 
-        // Placed machines
-        List<IMachine> _machines = new List<IMachine>();
+        InputManager _input;
+        WorldManager _worldManager;
 
-        // Shapes
-        List<ShapeSource> _shapeSources = new List<ShapeSource>();
-        List<ShapeInstance> _shapeInstances = new List<ShapeInstance>();
+        // Placed machines (managed by WorldManager)
+        List<IMachine> _machines => _worldManager.Machines;
+
+        // Shapes (managed by WorldManager)
+        List<ShapeSource> _shapeSources => _worldManager.ShapeSources;
+        List<ShapeInstance> _shapeInstances => _worldManager.ShapeInstances;
 
         // Hover/Select
         Point _hoverCell;
@@ -91,11 +95,13 @@ namespace ProjectAssemble
             IsMouseVisible = true;
             _graphics.PreferredBackBufferWidth = 1280;
             _graphics.PreferredBackBufferHeight = 800;
+            _input = new InputManager();
+            _worldManager = new WorldManager(GRID_W, GRID_H, _input);
+            _world = _worldManager.World;
         }
 
         protected override void Initialize()
         {
-            _world = new GridWorld(GRID_W, GRID_H);
             _tileIds = new int[GRID_W, GRID_H];
             for (int x = 0; x < GRID_W; x++)
                 for (int y = 0; y < GRID_H; y++)
@@ -121,12 +127,11 @@ namespace ProjectAssemble
             try { _tiles = Content.Load<Texture2D>("Factory_16"); } catch { _tiles = null; }
         }
 
-        MouseState _prevMS;
-        KeyboardState _prevKB;
         protected override void Update(GameTime gameTime)
         {
-            var ms = Mouse.GetState();
-            var kb = Keyboard.GetState();
+            _input.Update();
+            var ms = _input.CurrentMouse;
+            var kb = _input.CurrentKeyboard;
             if (kb.IsKeyDown(Keys.Escape)) Exit();
 
             _mouse = new Point(ms.X, ms.Y);
@@ -153,7 +158,7 @@ namespace ProjectAssemble
             // ===== Timeline drag/scrub handling =====
             if (!_dragging && !_draggingShape)
             {
-                if (!_timelineDragging && JustPressed(ms.LeftButton, _prevMS.LeftButton) && _timelineRect.Contains(_mouse))
+                if (!_timelineDragging && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _timelineRect.Contains(_mouse))
                 {
                     _timelineDragging = true;
                     if (_hoveredStep >= 0) _currentStep = _hoveredStep;
@@ -162,17 +167,17 @@ namespace ProjectAssemble
                 {
                     if (_hoveredStep >= 0) _currentStep = _hoveredStep;
                 }
-                if (_timelineDragging && JustReleased(ms.LeftButton, _prevMS.LeftButton))
+                if (_timelineDragging && JustReleased(ms.LeftButton, _input.PreviousMouse.LeftButton))
                 {
                     _timelineDragging = false;
                 }
             }
 
             // Rebuild occupancy from placed machines & shapes
-            RebuildOccupancy();
+            _worldManager.RebuildOccupancy();
 
             // ===== Drag start from machine palette =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _prevMS.LeftButton) && _machinePaletteRect.Contains(_mouse))
+            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _machinePaletteRect.Contains(_mouse))
             {
                 var picked = PaletteMachineAt(_mouse);
                 if (picked.HasValue)
@@ -187,7 +192,7 @@ namespace ProjectAssemble
             }
 
             // ===== Drag start by picking an existing machine =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _prevMS.LeftButton) && _hoverMachine != null)
+            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverMachine != null)
             {
                 _dragging = true; _draggingFromPalette = false; _draggingExisting = true;
                 _pickedMachine = _hoverMachine; _pickedOriginCell = _pickedMachine.BasePos;
@@ -202,7 +207,7 @@ namespace ProjectAssemble
             }
 
             // ===== Drag start from shape palette =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _prevMS.LeftButton) && _shapePaletteRect.Contains(_mouse))
+            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _shapePaletteRect.Contains(_mouse))
             {
                 var picked = PaletteShapeAt(_mouse);
                 if (picked.HasValue)
@@ -216,7 +221,7 @@ namespace ProjectAssemble
             }
 
             // ===== Drag start by picking an existing shape source =====
-            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _prevMS.LeftButton) && _hoverSource != null)
+            if (!_timelineDragging && !_dragging && !_draggingShape && JustPressed(ms.LeftButton, _input.PreviousMouse.LeftButton) && _hoverSource != null)
             {
                 _draggingShape = true; _draggingShapeExisting = true;
                 _pickedSource = _hoverSource;
@@ -229,23 +234,23 @@ namespace ProjectAssemble
             // ===== While dragging: rotate & extend debug =====
             if (_dragging)
             {
-                if (JustPressedKey(kb, _prevKB, Keys.Q)) _ghostFacing = RotCCW(_ghostFacing);
-                if (JustPressedKey(kb, _prevKB, Keys.E)) _ghostFacing = RotCW(_ghostFacing);
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Q)) _ghostFacing = RotCCW(_ghostFacing);
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.E)) _ghostFacing = RotCW(_ghostFacing);
 
-                if (JustPressedKey(kb, _prevKB, Keys.OemPlus) || JustPressedKey(kb, _prevKB, Keys.Add))
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.OemPlus) || JustPressedKey(kb, _input.PreviousKeyboard, Keys.Add))
                     _ghostExt = Math.Min(ArmMachine.MaxExtension, _ghostExt + 1);
-                if (JustPressedKey(kb, _prevKB, Keys.OemMinus) || JustPressedKey(kb, _prevKB, Keys.Subtract))
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.OemMinus) || JustPressedKey(kb, _input.PreviousKeyboard, Keys.Subtract))
                     _ghostExt = Math.Max(0, _ghostExt - 1);
             }
 
             if (_draggingShape)
             {
-                if (JustPressedKey(kb, _prevKB, Keys.Q)) _ghostShapeFacing = RotCCW(_ghostShapeFacing);
-                if (JustPressedKey(kb, _prevKB, Keys.E)) _ghostShapeFacing = RotCW(_ghostShapeFacing);
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Q)) _ghostShapeFacing = RotCCW(_ghostShapeFacing);
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.E)) _ghostShapeFacing = RotCW(_ghostShapeFacing);
             }
 
             // ===== Drop machine =====
-            if (_dragging && JustReleased(ms.LeftButton, _prevMS.LeftButton))
+            if (_dragging && JustReleased(ms.LeftButton, _input.PreviousMouse.LeftButton))
             {
                 bool placed = false;
                 if (_hoverInGrid)
@@ -279,7 +284,7 @@ namespace ProjectAssemble
             }
 
             // ===== Drop shape source =====
-            if (_draggingShape && JustReleased(ms.LeftButton, _prevMS.LeftButton))
+            if (_draggingShape && JustReleased(ms.LeftButton, _input.PreviousMouse.LeftButton))
             {
                 bool placed = false;
                 if (_hoverInGrid)
@@ -304,12 +309,12 @@ namespace ProjectAssemble
             // ===== Selection (Enter to select hovered; Esc clears) =====
             if (!_dragging && !_draggingShape)
             {
-                if (JustPressedKey(kb, _prevKB, Keys.Enter))
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Enter))
                 {
                     _selectedMachine = _hoverMachine;
                     _selectedSource = _hoverSource;
                 }
-                if (JustPressedKey(kb, _prevKB, Keys.Back) || JustPressedKey(kb, _prevKB, Keys.Delete))
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Back) || JustPressedKey(kb, _input.PreviousKeyboard, Keys.Delete))
                 {
                     // Delete hovered: instance > source > machine
                     if (_hoverInGrid)
@@ -320,7 +325,7 @@ namespace ProjectAssemble
                         else if (_hoverMachine != null) _machines.Remove(_hoverMachine);
                     }
                 }
-                if (JustPressedKey(kb, _prevKB, Keys.Escape))
+                if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Escape))
                 { _selectedMachine = null; _selectedSource = null; }
             }
 
@@ -331,17 +336,17 @@ namespace ProjectAssemble
                 IMachine targetM = _selectedMachine ?? _hoverMachine;
                 if (targetM is ArmMachine ta)
                 {
-                    if (JustPressedKey(kb, _prevKB, Keys.Q)) ta.Facing = RotCCW(ta.Facing);
-                    if (JustPressedKey(kb, _prevKB, Keys.E)) ta.Facing = RotCW(ta.Facing);
-                    if (JustPressedKey(kb, _prevKB, Keys.OemPlus) || JustPressedKey(kb, _prevKB, Keys.Add))
+                    if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.Q)) ta.Facing = RotCCW(ta.Facing);
+                    if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.E)) ta.Facing = RotCW(ta.Facing);
+                    if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.OemPlus) || JustPressedKey(kb, _input.PreviousKeyboard, Keys.Add))
                         ta.Extension = Math.Min(ArmMachine.MaxExtension, ta.Extension + 1);
-                    if (JustPressedKey(kb, _prevKB, Keys.OemMinus) || JustPressedKey(kb, _prevKB, Keys.Subtract))
+                    if (JustPressedKey(kb, _input.PreviousKeyboard, Keys.OemMinus) || JustPressedKey(kb, _input.PreviousKeyboard, Keys.Subtract))
                         ta.Extension = Math.Max(0, ta.Extension - 1);
                 }
             }
 
             // ===== Right-click to delete =====
-            if (JustPressed(ms.RightButton, _prevMS.RightButton) && _hoverInGrid)
+            if (JustPressed(ms.RightButton, _input.PreviousMouse.RightButton) && _hoverInGrid)
             {
                 var inst = InstanceAtCell(_hoverCell);
                 if (inst != null) _shapeInstances.Remove(inst);
@@ -350,44 +355,10 @@ namespace ProjectAssemble
             }
 
             // Auto-replenish shapes from sources
-            ReplenishShapes();
-
-            _prevMS = ms; _prevKB = kb;
+            _worldManager.ReplenishShapes();
             base.Update(gameTime);
         }
 
-        void RebuildOccupancy()
-        {
-            _world.BeginOccupancy();
-            foreach (var m in _machines) _world.MarkOccupied(m.BasePos);
-            foreach (var s in _shapeSources) _world.MarkOccupied(s.BasePos);
-            foreach (var inst in _shapeInstances)
-                foreach (var c in inst.Cells) _world.MarkOccupied(c);
-            _world.EndOccupancy();
-        }
-
-        void ReplenishShapes()
-        {
-            // Ensure each source has exactly one instance at its start spot when footprint is clear
-            for (int i = 0; i < _shapeSources.Count; i++)
-            {
-                var src = _shapeSources[i];
-                bool has = _shapeInstances.Exists(si => si.SourceId == src.Id);
-                if (!has)
-                {
-                    var cells = GetFootprint(src.Type, src.BasePos, src.Facing);
-                    if (AreCellsFree(cells))
-                        _shapeInstances.Add(new ShapeInstance(src.Id, cells));
-                }
-            }
-        }
-
-        bool AreCellsFree(List<Point> cells)
-        {
-            foreach (var p in cells)
-                if (!_world.InBounds(p) || _world.IsOccupied(p)) return false;
-            return true;
-        }
 
         bool JustPressed(ButtonState cur, ButtonState prev) => cur == ButtonState.Pressed && prev == ButtonState.Released;
         bool JustReleased(ButtonState cur, ButtonState prev) => cur == ButtonState.Released && prev == ButtonState.Pressed;
@@ -469,7 +440,7 @@ namespace ProjectAssemble
                 {
                     var cell = _hoverCell;
                     var cells = GetFootprint(_dragShapeType.Value, cell, _ghostShapeFacing);
-                    bool valid = AreCellsFree(cells);
+                    bool valid = _worldManager.AreCellsFree(cells);
                     foreach (var p in cells)
                     {
                         var r = CellRect(p);
