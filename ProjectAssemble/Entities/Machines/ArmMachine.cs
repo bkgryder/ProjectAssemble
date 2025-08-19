@@ -46,9 +46,9 @@ namespace ProjectAssemble.Entities.Machines
         public bool Grabbed { get; set; } = false;
 
         /// <summary>
-        /// Programmed actions for each step of the timeline.
+        /// Programmed commands for each step of the timeline.
         /// </summary>
-        public ArmAction[] Program { get; } = new ArmAction[Timeline.Steps];
+        public ArmCommand[] Program { get; } = new ArmCommand[Timeline.Steps];
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ArmMachine"/> class.
@@ -59,6 +59,10 @@ namespace ProjectAssemble.Entities.Machines
         {
             BasePos = basePos;
             Facing = facing;
+            for (int i = 0; i < Program.Length; i++)
+            {
+                Program[i] = new ArmCommand { Action = ArmAction.None, Amount = 0 };
+            }
         }
 
         /// <inheritdoc/>

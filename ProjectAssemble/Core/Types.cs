@@ -18,6 +18,22 @@ namespace ProjectAssemble.Core
     public enum ArmAction { None, Move }
 
     /// <summary>
+    /// Represents a single command executed by an arm.
+    /// </summary>
+    public struct ArmCommand
+    {
+        /// <summary>
+        /// The action to perform.
+        /// </summary>
+        public ArmAction Action;
+
+        /// <summary>
+        /// Amount associated with the action.
+        /// </summary>
+        public int Amount;
+    }
+
+    /// <summary>
     /// Timeline-related constants.
     /// </summary>
     public static class Timeline
