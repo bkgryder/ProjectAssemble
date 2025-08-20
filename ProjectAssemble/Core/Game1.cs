@@ -277,10 +277,12 @@ namespace ProjectAssemble.Core
                     int idx = arms.IndexOf(selected);
                     if (idx == row && step >= 0 && step < selected.Program.Length)
                     {
-                        if (selected.Program[step].Action == _pendingArmAction)
+                        int amount = _pendingArmAction == ArmAction.Move ? selected.MoveAmount : 0;
+                        if (selected.Program[step].Action == _pendingArmAction &&
+                            selected.Program[step].Amount == amount)
                             selected.Program[step] = default;
                         else
-                            selected.Program[step] = new ArmCommand { Action = _pendingArmAction, Amount = 0 };
+                            selected.Program[step] = new ArmCommand { Action = _pendingArmAction, Amount = amount };
                     }
                 }
                 _draggingAction = false;
@@ -383,10 +385,12 @@ namespace ProjectAssemble.Core
                 int idx = arms.IndexOf(selected);
                 if (idx == row && step >= 0 && step < selected.Program.Length)
                 {
-                    if (selected.Program[step].Action == _pendingArmAction)
+                    int amount = _pendingArmAction == ArmAction.Move ? selected.MoveAmount : 0;
+                    if (selected.Program[step].Action == _pendingArmAction &&
+                        selected.Program[step].Amount == amount)
                         selected.Program[step] = default;
                     else
-                        selected.Program[step] = new ArmCommand { Action = _pendingArmAction, Amount = 0 };
+                        selected.Program[step] = new ArmCommand { Action = _pendingArmAction, Amount = amount };
                 }
             }
         }
