@@ -188,7 +188,7 @@ namespace ProjectAssemble.UI
                         var cmd = arms[row].Program[i];
                         if (cmd.Action != ArmAction.None && font != null)
                         {
-                            string txt = cmd.Action == ArmAction.Move ? "M" : "?";
+                            string txt = cmd.Action == ArmAction.Move ? $"M{cmd.Amount}" : "?";
                             sb.DrawString(font, txt, new Vector2(r.X + 2, r.Y + 2), Color.Black);
                         }
                     }

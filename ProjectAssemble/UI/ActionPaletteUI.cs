@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using ProjectAssemble.Core;
 using ProjectAssemble.Systems;
 
@@ -19,9 +20,12 @@ namespace ProjectAssemble.UI
         public Rectangle Rect => _rect;
 
         /// <summary>
-        /// Occurs when an action is picked.
+        /// Occurs when an action is picked along with an optional amount.
         /// </summary>
-        public event Action<ArmAction> ActionPicked;
+        public event Action<ArmAction, int> ActionPicked;
+
+        bool _capturingMoveAmount = false;
+        int _moveAmount = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ActionPaletteUI"/> class.
@@ -36,13 +40,43 @@ namespace ProjectAssemble.UI
         /// </summary>
         public void Update(InputManager input)
         {
+            if (_capturingMoveAmount)
+            {
+                var kb = input.CurrentKeyboard;
+                var prev = input.PreviousKeyboard;
+                for (int i = 0; i <= 9; i++)
+                {
+                    var key = Keys.D0 + i;
+                    var numPad = Keys.NumPad0 + i;
+                    if (kb.IsKeyDown(key) && !prev.IsKeyDown(key)) _moveAmount = _moveAmount * 10 + i;
+                    if (kb.IsKeyDown(numPad) && !prev.IsKeyDown(numPad)) _moveAmount = _moveAmount * 10 + i;
+                }
+                if (kb.IsKeyDown(Keys.Back) && !prev.IsKeyDown(Keys.Back))
+                    _moveAmount /= 10;
+                if (kb.IsKeyDown(Keys.Enter) && !prev.IsKeyDown(Keys.Enter))
+                {
+                    _capturingMoveAmount = false;
+                    ActionPicked?.Invoke(ArmAction.Move, _moveAmount);
+                    _moveAmount = 0;
+                }
+                if (kb.IsKeyDown(Keys.Escape) && !prev.IsKeyDown(Keys.Escape))
+                {
+                    _capturingMoveAmount = false;
+                    _moveAmount = 0;
+                }
+                return;
+            }
+
             var ms = input.CurrentMouse;
             var pos = new Point(ms.X, ms.Y);
             if (input.JustPressed(ms.LeftButton, input.PreviousMouse.LeftButton))
             {
                 var moveRect = new Rectangle(_rect.X + 8, _rect.Y + 32, _rect.Width - 16, 20);
                 if (moveRect.Contains(pos))
-                    ActionPicked?.Invoke(ArmAction.Move);
+                {
+                    _capturingMoveAmount = true;
+                    _moveAmount = 0;
+                }
             }
         }
 
@@ -61,7 +95,10 @@ namespace ProjectAssemble.UI
             FillRect(sb, px, r, new Color(255, 255, 255, 8));
             DrawRect(sb, px, r, Color.White, 1);
             if (font != null)
-                sb.DrawString(font, "Move", new Vector2(r.X + 4, r.Y + 2), Color.Black);
+            {
+                string label = _capturingMoveAmount ? $"Move: {_moveAmount}" : "Move";
+                sb.DrawString(font, label, new Vector2(r.X + 4, r.Y + 2), Color.Black);
+            }
         }
 
         static void FillRect(SpriteBatch sb, Texture2D px, Rectangle r, Color c) => sb.Draw(px, r, c);
