@@ -47,6 +47,7 @@ namespace ProjectAssemble.Core
         TimelineUI _timelineUI;
         ArmParameterUI _armParamUI;
         ArmAction _pendingArmAction = ArmAction.None;
+        int _pendingMoveAmount = 0;
         bool _draggingAction = false;
         int _currentStep = 0;
 
@@ -277,7 +278,7 @@ namespace ProjectAssemble.Core
                     int idx = arms.IndexOf(selected);
                     if (idx == row && step >= 0 && step < selected.Program.Length)
                     {
-                        int amount = _pendingArmAction == ArmAction.Move ? selected.MoveAmount : 0;
+                        int amount = _pendingArmAction == ArmAction.Move ? _pendingMoveAmount : 0;
                         if (selected.Program[step].Action == _pendingArmAction &&
                             selected.Program[step].Amount == amount)
                             selected.Program[step] = default;
@@ -287,6 +288,7 @@ namespace ProjectAssemble.Core
                 }
                 _draggingAction = false;
                 _pendingArmAction = ArmAction.None;
+                _pendingMoveAmount = 0;
             }
 
             // ===== Selection (Enter to select hovered; Esc clears) =====
@@ -370,10 +372,11 @@ namespace ProjectAssemble.Core
             _selectedMachine = null; _selectedSource = null;
         }
 
-        void OnActionPicked(ArmAction action)
+        void OnActionPicked(ArmAction action, int amount)
         {
             _pendingArmAction = action;
-            _draggingAction = true;
+            _pendingMoveAmount = amount;
+            _draggingAction = false;
         }
 
         void OnTimelineSlotClicked(int row, int step)
@@ -385,7 +388,7 @@ namespace ProjectAssemble.Core
                 int idx = arms.IndexOf(selected);
                 if (idx == row && step >= 0 && step < selected.Program.Length)
                 {
-                    int amount = _pendingArmAction == ArmAction.Move ? selected.MoveAmount : 0;
+                    int amount = _pendingArmAction == ArmAction.Move ? _pendingMoveAmount : 0;
                     if (selected.Program[step].Action == _pendingArmAction &&
                         selected.Program[step].Amount == amount)
                         selected.Program[step] = default;
