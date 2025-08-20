@@ -65,6 +65,21 @@ namespace ProjectAssemble.Entities.Machines
             }
         }
 
+        /// <summary>
+        /// Executes the command assigned to the specified timeline step.
+        /// </summary>
+        /// <param name="step">The timeline step to execute.</param>
+        public void ExecuteStep(int step)
+        {
+            if (step < 0 || step >= Program.Length) return;
+
+            var cmd = Program[step];
+            if (cmd.Action == ArmAction.Move)
+            {
+                Extension = Math.Clamp(Extension + cmd.Amount, 0, MaxExtension);
+            }
+        }
+
         /// <inheritdoc/>
         public void Draw(SpriteBatch sb, Texture2D tiles, Texture2D px, Point origin, int tilesPerRow)
         {
