@@ -122,7 +122,13 @@ namespace ProjectAssemble.Core
             _machinePaletteUI.MachinePicked += OnMachinePicked;
             _shapePaletteUI.ShapePicked += OnShapePicked;
             _actionPaletteUI.ActionPicked += OnActionPicked;
-            _timelineUI.StepChanged += s => _currentStep = s;
+            _timelineUI.StepChanged += s =>
+            {
+                _currentStep = s;
+                foreach (var m in Machines)
+                    if (m is ArmMachine arm)
+                        arm.ExecuteStep(s);
+            };
             _timelineUI.SlotClicked += OnTimelineSlotClicked;
 
             base.Initialize();
