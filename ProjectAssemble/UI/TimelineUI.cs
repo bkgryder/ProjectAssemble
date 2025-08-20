@@ -138,7 +138,11 @@ namespace ProjectAssemble.UI
         /// <summary>
         /// Draws the timeline.
         /// </summary>
-        public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font, List<ArmMachine> arms)
+        /// <summary>
+        /// Draws the timeline.
+        /// </summary>
+        /// <param name="actionMode">If true, shows a prompt for placing an action.</param>
+        public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font, List<ArmMachine> arms, bool actionMode)
         {
             FillRect(sb, px, _rect, new Color(30, 32, 38));
             DrawRect(sb, px, _rect, new Color(80, 85, 98), 2);
@@ -203,6 +207,12 @@ namespace ProjectAssemble.UI
                     sb.DrawString(font, i.ToString(), new Vector2(x + 2, inner.Bottom + 2), new Color(200, 210, 230));
                 }
                 sb.DrawString(font, $"Step: {_currentStep} / {Timeline.Steps - 1}", new Vector2(_rect.X + 6, _rect.Y - 18), Color.White);
+                if (actionMode)
+                {
+                    const string msg = "Click a timeline slot";
+                    var size = font.MeasureString(msg);
+                    sb.DrawString(font, msg, new Vector2(_rect.X + (_rect.Width - size.X) / 2f, _rect.Y + 4), new Color(255, 240, 140));
+                }
             }
         }
 

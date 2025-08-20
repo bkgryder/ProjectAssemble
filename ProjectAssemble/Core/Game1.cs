@@ -417,7 +417,7 @@ namespace ProjectAssemble.Core
             // Palettes
             _machinePaletteUI.Draw(_sb, _tiles, _px, _font);
             _shapePaletteUI.Draw(_sb, _px, _font);
-            _actionPaletteUI.Draw(_sb, _px, _font);
+            _actionPaletteUI.Draw(_sb, _px, _font, _pendingArmAction != ArmAction.None);
 
             // Grid tiles
             DrawTiles();
@@ -497,7 +497,7 @@ namespace ProjectAssemble.Core
             }
 
             // Timeline
-            _timelineUI.Draw(_sb, _px, _font, GetArmsSorted());
+            _timelineUI.Draw(_sb, _px, _font, GetArmsSorted(), _pendingArmAction != ArmAction.None);
             _armParamUI.Draw(_sb, _px, _font);
 
             // Help text
