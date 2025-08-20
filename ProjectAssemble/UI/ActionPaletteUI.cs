@@ -83,7 +83,8 @@ namespace ProjectAssemble.UI
         /// <summary>
         /// Draws the palette.
         /// </summary>
-        public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font)
+        /// <param name="actionPending">If true, shows help text for placing an action.</param>
+        public void Draw(SpriteBatch sb, Texture2D px, SpriteFont font, bool actionPending)
         {
             FillRect(sb, px, _rect, new Color(30, 32, 38));
             DrawRect(sb, px, _rect, new Color(80, 85, 98), 2);
@@ -98,6 +99,11 @@ namespace ProjectAssemble.UI
             {
                 string label = _capturingMoveAmount ? $"Move: {_moveAmount}" : "Move";
                 sb.DrawString(font, label, new Vector2(r.X + 4, r.Y + 2), Color.Black);
+                if (actionPending && !_capturingMoveAmount)
+                {
+                    const string help = "Select an action, then click a timeline slot";
+                    sb.DrawString(font, help, new Vector2(_rect.X + 8, _rect.Bottom - 20), new Color(200, 200, 200));
+                }
             }
         }
 
